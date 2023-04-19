@@ -127,8 +127,7 @@ async def hunt(ctx):
   enemy = character.hunt()
 
   # Send reply
-  await ctx.message.reply(
-    f"You encounter a {enemy.name}. Do you `!fight` or `!flee`?")
+  await ctx.message.reply(f"You encounter a {enemy.name}. Do you `!fight` or `!flee`?")
 
 @bot.command(name="fight", help="Fight the current enemy.")
 async def fight(ctx):
@@ -206,6 +205,22 @@ async def skill(ctx)
     await ctx.message.reply("Cannot call this command in battle!")
     return
 
-  
+@bot.command(name="die", help="Destroy current character.")
+async def die(ctx):
+    character = load_character(ctx.message.author.id)
+
+    character.die()
+
+    await ctx.message.reply(f"Character {character.name} is no more. Create a new one with `!create`.")
+
+@bot.command(name="reset", help="[DEV] Destroy and recreate current character.")
+async def reset(ctx):
+    user_id = str(ctx.message.author.id)
+
+    if user_id in db["characters"].keys():
+        del db["characters"][user_id]
+
+    await ctx.message.reply(f"Character deleted.")
+    await create(ctx)
 
 bot.run(DISCORD_TOKEN)

@@ -35,9 +35,28 @@ class Skill:
         self.cooldown = cooldown
         self.skill_type = skill_type
         self.debuffs = []
+        self.rank = self.calculate_rank()
+
+    def calculate_rank(self): #Redefine this garbage system please
+        if self.damage_amount > 100 * self.level:
+          return "S"
+        elif self.damage_amount > 50 * self.level:
+          return "A"
+        elif self.damage_amount > 20 * self.level:
+          return "B"
+        elif self.damage_amount > 10 * self.level:
+          return "C"
+        elif self.damage_amount > 5 * self.level:
+          return "D"
+        elif self.damage_amount > self.level:
+          return "E"
+        else:
+          return "F"
 
     def __str__(self):
-        return f"{self.name} (Level {self.level}): {self.damage_amount} {self.damage_attributes} damage with a cooldown of {self.cooldown} turns. Type: {self.skill_type}. Debuffs: {', '.join(self.debuffs)}"
+        return f"{self.name} (Level {self.level}): {self.damage_amount} {self.damage_attributes} damage with a cooldown of {self.cooldown} turns. Type: {self.skill_type}. Rank: {self.rank}. Debuffs: {', '.join(self.debuffs)}"
+
+
 
 
 class Actor:
@@ -56,7 +75,6 @@ class Actor:
     defense = min(other.defense, 19)  # cap defense value
     chance_to_hit = random.randint(0, 20 - defense)
     if chance_to_hit:
-
       damage = self.attack
     else:
       damage = 0
@@ -84,6 +102,7 @@ class Character(Actor):
     self.level = level
 
     self.skills = []
+    self.bias = len(self.skills)
 
     self.inventory = inventory
 
@@ -112,7 +131,7 @@ class Character(Actor):
 
     skill = Skill(name, level, damage_attributes, damage_amount, cooldown, skill_type)
     debuff_type = random.choice(["health", "mana", "stamina"])
-    debuff_amount = random.randint(1, 100)
+    debuff_amount = random.randint(1, 100 * (cooldown+damage_amount) * self.bias)
     skill.debuffs.append(f"-{debuff_amount} {debuff_type}")
     self.skills.append(skill)
   
