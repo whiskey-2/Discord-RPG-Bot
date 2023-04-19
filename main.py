@@ -197,4 +197,15 @@ async def flee(ctx):
     else:
         await ctx.message.reply(f"{character.name} flees the {enemy.name} with their life but not their dignity intact. HP: {character.hp}/{character.max_hp}")
 
+
+@bot.command(name="skill", help="Create and upgrade skills")
+async def skill(ctx)
+  character = load_character(ctx.message.author.id)
+
+  if character.mode != GameMode.ADVENTURE:
+    await ctx.message.reply("Cannot call this command in battle!")
+    return
+
+  
+
 bot.run(DISCORD_TOKEN)
