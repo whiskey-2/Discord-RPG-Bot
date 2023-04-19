@@ -15,10 +15,12 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 def load_character(user_id):
   return Character(**db["characters"][str(user_id)])
 
+
 MODE_COLOR = {
   GameMode.BATTLE: 0xDC143C,
   GameMode.ADVENTURE: 0x005EB8,
 }
+
 
 def status_embed(ctx, character):
 
@@ -38,14 +40,16 @@ def status_embed(ctx, character):
   # Stats field
   _, xp_needed = character.ready_to_level_up()
 
-  embed.add_field(name="Stats", value=f"""
+  embed.add_field(name="Stats",
+                  value=f"""
 **HP:**    {character.hp}/{character.max_hp}
 **ATTACK:**   {character.attack}
 **DEFENSE:**   {character.defense}
 **MANA:**  {character.mana}
 **LEVEL:** {character.level}
 **XP:**    {character.xp}/{character.xp+xp_needed}
-    """, inline=True)
+    """,
+                  inline=True)
 
   # Inventory field
   inventory_text = f"Gold: {character.gold}\n"
@@ -55,6 +59,7 @@ def status_embed(ctx, character):
   embed.add_field(name="Inventory", value=inventory_text, inline=True)
 
   return embed
+
 
 #Bot Starts
 @bot.event
@@ -80,13 +85,16 @@ async def create(ctx, name=None):
     character = Character(
       **{
         "name": name,
-        "hp": 16,
-        "max_hp": 16,
+        "hp": 10,
+        "max_hp": 10,
         "attack": 2,
         "defense": 1,
         "mana": 0,
-        "level": 1,
+        "max_mana": 10,
+        "stamina": 8,
+        "max_stamina": 8,
         "xp": 0,
+        "level": 1,
         "gold": 0,
         "inventory": [],
         "mode": GameMode.ADVENTURE,
@@ -100,6 +108,7 @@ async def create(ctx, name=None):
   else:
     await ctx.message.reply("You have already created your character.")
 
+
 @bot.command(name="status", help="Get information about your character.")
 async def status(ctx):
   character = load_character(ctx.message.author.id)
@@ -107,17 +116,20 @@ async def status(ctx):
   embed = status_embed(ctx, character)
   await ctx.message.reply(embed=embed)
 
+
 @bot.command(name="hunt", help="Look for an enemy to fight.")
 async def hunt(ctx):
-    character = load_character(ctx.message.author.id)
+  character = load_character(ctx.message.author.id)
 
-    if character.mode != GameMode.ADVENTURE:
-        await ctx.message.reply("Can only call this command outside of battle!")
-        return
+  if character.mode != GameMode.ADVENTURE:
+    await ctx.message.reply("Can only call this command outside of battle!")
+    return
 
-    enemy = character.hunt()
+  enemy = character.hunt()
 
-    # Send reply
-    await ctx.message.reply(f"You encounter a {enemy.name}. Do you `!fight` or `!flee`?")
+  # Send reply
+  await ctx.message.reply(
+    f"You encounter a {enemy.name}. Do you `!fight` or `!flee`?")
+
 
 bot.run(DISCORD_TOKEN)
