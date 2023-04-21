@@ -2,339 +2,326 @@ from replit import db
 import enum, random, sys
 from copy import deepcopy
 
+
 #Helper Functions
-
-
 def str_to_class(classname):
-  return getattr(sys.modules[__name__], classname)
+		return getattr(sys.modules[__name__], classname)
 
 
 def make_stats_enemy(min_level, bias):
-  enemy_health = random.randint(min_level * 10, min_level * 20 * bias)
-  enemy_attack = random.randint(min_level * 2, min_level * 4 * bias)
-  enemy_defense = random.randint(min_level, min_level * 2 * bias)
-  enemy_xp = random.randint(
-    round((enemy_attack + enemy_defense + enemy_health) / (min_level * 2), 0),
-    round((enemy_attack + enemy_defense + enemy_health) * bias / min_level, 0))
-  enemy_gold = random.randint(min_level, (min_level * 10) + bias)
-  return [enemy_health, enemy_attack, enemy_defense, enemy_xp, enemy_gold]
-
+		enemy_health = random.randint(min_level * 10, min_level * 20 * bias)
+		enemy_attack = random.randint(min_level * 2, min_level * 4 * bias)
+		enemy_defense = random.randint(min_level, min_level * 2 * bias)
+		enemy_xp = random.randint(
+				round((enemy_attack + enemy_defense + enemy_health) / (min_level * 2), 0),
+				round((enemy_attack + enemy_defense + enemy_health) * bias / min_level, 0))
+		enemy_gold = random.randint(min_level, (min_level * 10) + bias)
+		return [enemy_health, enemy_attack, enemy_defense, enemy_xp, enemy_gold]
 
 class GameMode(enum.IntEnum):
-  ADVENTURE = 1
-  BATTLE = 2
-  AFK = 3
-  TRANCE = 4
-
-class Skill:
-    def __init__(self, name, level, damage_attributes, damage_amount, cooldown, skill_type):
-        self.name = name
-        self.level = level
-        self.damage_attributes = damage_attributes
-        self.damage_amount = damage_amount
-        self.cooldown = cooldown
-        self.skill_type = skill_type
-        self.debuffs = []
-        self.rank = self.calculate_rank()
-
-    def calculate_rank(self): #Redefine this garbage system please
-        if self.damage_amount > 100 * self.level:
-          return "S"
-        elif self.damage_amount > 50 * self.level:
-          return "A"
-        elif self.damage_amount > 20 * self.level:
-          return "B"
-        elif self.damage_amount > 10 * self.level:
-          return "C"
-        elif self.damage_amount > 5 * self.level:
-          return "D"
-        elif self.damage_amount > self.level:
-          return "E"
-        else:
-          return "F"
-
-    def __str__(self):
-        return f"{self.name} (Level {self.level}): {self.damage_amount} {self.damage_attributes} damage with a cooldown of {self.cooldown} turns. Type: {self.skill_type}. Rank: {self.rank}. Debuffs: {', '.join(self.debuffs)}"
-
-
+		ADVENTURE = 1
+		BATTLE = 2
 
 
 class Actor:
 
-  def __init__(self, name, hp, max_hp, attack, defense, level, xp, gold):
-    self.name = name
-    self.hp = hp
-    self.max_hp = max_hp
-    self.attack = attack
-    self.defense = defense
-    self.level = level
-    self.xp = xp
-    self.gold = gold
+		def __init__(self, name, hp, max_hp, attack, defense, xp, gold):
+				self.name = name
+				self.hp = hp
+				self.max_hp = max_hp
+				self.attack = attack
+				self.defense = defense
+				self.xp = xp
+				self.gold = gold
 
-  def fight(self, other):
-    defense = min(other.defense, 19)  # cap defense value
-    chance_to_hit = random.randint(0, 20 - defense)
-    if chance_to_hit:
-      damage = self.attack
-    else:
-      damage = 0
+		def fight(self, other):
+				defense = min(other.defense, 19) # cap defense value
+				chance_to_hit = random.randint(0, 20-defense)
+				if chance_to_hit:
+						damage = self.attack
+				else:
+						damage = 0
 
-    other.hp -= damage
+				other.hp -= damage
 
-    return (self.attack, other.hp <= 0)  #(damage, fatal)
+				return (self.attack, other.hp <= 0) #(damage, fatal)
+
+
+class Skill:
+
+	def __init__(self, name, level, damage_attributes, damage_amount, cooldown, skill_type):
+			self.name = name
+			self.level = level
+			self.damage_attributes = damage_attributes
+			self.damage_amount = damage_amount
+			self.cooldown = cooldown
+			self.skill_type = skill_type
+			self.debuffs = []
+			self.rank = self.calculate_rank()
+
+	def calculate_rank(self):  #Redefine this garbage system please
+			if self.damage_amount > 100 * self.level:
+					return "S"
+			elif self.damage_amount > 50 * self.level:
+					return "A"
+			elif self.damage_amount > 20 * self.level:
+					return "B"
+			elif self.damage_amount > 10 * self.level:
+					return "C"
+			elif self.damage_amount > 5 * self.level:
+					return "D"
+			elif self.damage_amount > self.level:
+					return "E"
+			else:
+					return "F"
+
+	def __str__(self):
+		return f"{self.name} (Level {self.level}): {self.damage_amount} {self.damage_attributes} damage with a cooldown of {self.cooldown} turns. Type: {self.skill_type}. Rank: {self.rank}. Debuffs: {', '.join(self.debuffs)}"
 
 
 class Character(Actor):
+		level_cap = 999
+		
+		def __init__(self, name, hp, max_hp, attack, defense, mana, max_mana, stamina, max_stamina, level, xp, gold, inventory, mode, battling, skills, bias, user_id):
+				super().__init__(name, hp, max_hp, attack, defense, xp, gold)
+				self.mana = mana
+				self.max_mana = max_mana
+				self.stamina = stamina
+				self.max_stamina = max_stamina
+				self.level = level
+				self.inventory = inventory
+				self.mode = mode
+				
+				if battling != None:
+						enemy_class = str_to_class(battling["enemy"])
+						self.battling = enemy_class()
+						self.battling.rehydrate(**battling)
+				else:
+						self.battling = None
+				
+				self.skills = skills
+				self.bias = bias
+				self.user_id = user_id
+				
+		def save_to_db(self):
+			character_dict = deepcopy(vars(self))
+			if self.battling != None:
+					character_dict["battling"] = deepcopy(vars(self.battling))
+			db["characters"][self.user_id] = character_dict
 
-  level_cap = 999
+				
+		def create_skill(self, name, level, damage_attributes, damage_amount, cooldown, skill_type):
+				if skill_type == "intent" and self.level < 500:
+						print("You must be at least level 500 to create an intent skill.")
+						return
+				if len(self.skills) >= self.level:
+						print("You must reach the next level before developing a new skill.")
+						return
+				skill = Skill(name, level, damage_attributes, damage_amount, cooldown, skill_type)
+				debuff_type = random.choice(["health", "mana", "stamina"])
+				debuff_amount = random.randint(1, 100)
+				
+				if skill.rank == "S":
+						debuff_amount *= 20
+				elif skill.rank == "A":
+						debuff_amount *= 15
+				elif skill.rank == "B":
+						debuff_amount *= 10
+				elif skill.rank == "C":
+						debuff_amount *= 5
+				elif skill.rank == "D":
+						debuff_amount *= 2
+				elif skill.rank == "E":
+						debuff_amount *= 1.5
+				else:
+						debuff_amount *= 1
+						
+				skill.debuffs.append(f"-{debuff_amount} {debuff_type}")
+				self.skills.append(skill)
+				
+		def hunt(self):
+				# Generate random enemy to fight
+				while True:
+						enemy_type = random.choice(Enemy.__subclasses__())
+						if enemy_type.min_level <= self.level:
+								break
+								
+				enemy = enemy_type()
 
-  def __init__(self, name, hp, max_hp, attack, defense, mana, max_mana,
-               stamina, max_stamina, xp, level, gold, inventory, mode,
-               battling, user_id):
-    super().__init__(name, hp, max_hp, attack, defense, xp, gold)
-    self.name = name
-    self.hp = hp
-    self.max_hp = max_hp
-    self.mana = mana
-    self.max_mana = max_mana
-    self.stamina = stamina
-    self.max_stamina = max_stamina
-    self.level = level
+				# Enter battle mode
+				self.mode = GameMode.BATTLE
+				self.battling = enemy
 
-    self.skills = []
-    self.bias = len(self.skills)
+				# Save changes to db after state change
+				self.save_to_db()
 
-    self.inventory = inventory
+				return enemy
 
-    self.mode = mode
+		def fight(self, enemy):
+				outcome = super().fight(enemy)
 
-    if battling != None:
-      enemy_class = str_to_class(battling["enemy"])
-      self.battling = enemy_class()
-      self.battling.rehydrate(**battling)
-    else:
-      self.battling = None
+				# Save changes to db after state change
+				self.save_to_db()
 
-    self.user_id = user_id
+				return outcome
 
-  def save_to_db(self):
-    character_dict = deepcopy(vars(self))
-    if self.battling != None:
-      character_dict["battling"] = deepcopy(vars(self.battling))
+		def flee(self, enemy):
+				if random.randint(0, 1 + self.defense):  # flee unscathed
+						damage = 0
+				else:  # take damage
+						damage = enemy.attack / 2
+						self.hp -= damage
 
-      db["characters"][self.user_id] = character_dict
+				# Exit battle mode
+				self.battling = None
+				self.mode = GameMode.ADVENTURE
 
-  def create_skill(self, name, level, damage_attributes, damage_amount, cooldown, skill_type):
-    if skill_type == "intent" and self.level < 200:
-      print("You must be at least level 200 to create an intent skill.")
-      return
+				# Save to db after state change
+				self.save_to_db()
 
-    skill = Skill(name, level, damage_attributes, damage_amount, cooldown, skill_type)
-    debuff_type = random.choice(["health", "mana", "stamina"])
-    debuff_amount = random.randint(1, 100 * (cooldown+damage_amount) * self.bias)
-    skill.debuffs.append(f"-{debuff_amount} {debuff_type}")
-    self.skills.append(skill)
-  
-  def hunt(self):
-    # Generate random enemy to fight
-    while True:
-      enemy_type = random.choice(Enemy.__subclasses__())
+				return (damage, self.hp <= 0)  #(damage, killed)
 
-      if enemy_type.min_level <= self.level:
-        break
+		def defeat(self, enemy):
+			if self.level < self.level_cap:  # no more XP after hitting level cap
+					self.xp += enemy.xp
 
-      enemy = enemy_type()
+			self.gold += enemy.gold  # loot enemy
 
-      # Enter battle mode
-      self.mode = GameMode.BATTLE
-      self.battling = enemy
+			# Exit battle mode
+			self.battling = None
+			self.mode = GameMode.ADVENTURE
 
-      # Save changes to db after state change
-      self.save_to_db()
+			# Check if ready to level up after earning XP
+			ready, _ = self.ready_to_level_up()
 
-      return enemy
+			# Save to db after state change
+			self.save_to_db()
 
-    def fight(self, enemy):
-      outcome = super().fight(enemy)
+			return (enemy.xp, enemy.gold, ready)
 
-      # Save changes to db after state change
-      self.save_to_db()
 
-      return outcome
+		def ready_to_level_up(self):
+				if self.level == self.level_cap:  # zero values if we've reached the level cap
+						return (False, 0)
 
-    def flee(self, enemy):
-      if random.randint(0, 1 + self.defense):  # flee unscathed
-        damage = 0
-      else:  # take damage
-        damage = enemy.attack / 2
-        self.hp -= damage
+				xp_needed = (self.level) * 100
+				return (self.xp >= xp_needed, xp_needed - self.xp)  #(ready, XP needed)
 
-      # Exit battle mode
-      self.battling = None
-      self.mode = GameMode.ADVENTURE
 
-      # Save to db after state change
-      self.save_to_db()
+		def level_up(self, increase):
+				ready, _ = self.ready_to_level_up()
+				if not ready:
+						return (False, self.level)  # (not leveled up, current level)
 
-      return (damage, self.hp <= 0)  #(damage, killed)
+				self.level += 1  # increase level
+				setattr(self, increase, getattr(self, increase) + 1)  # increase chosen stat
 
-    def defeat(self, enemy):
-      if self.level < self.level_cap:  # no more XP after hitting level cap
-        self.xp += enemy.xp
+				self.hp = self.max_hp  # refill HP
 
-      self.gold += enemy.gold  # loot enemy
+				# Save to db after state change
+				self.save_to_db()
 
-      # Exit battle mode
-      self.battling = None
-      self.mode = GameMode.ADVENTURE
+				return (True, self.level)  # (leveled up, new level)
 
-      # Check if ready to level up after earning XP
-      ready, _ = self.ready_to_level_up()
 
-      # Save to db after state change
-      self.save_to_db()
-
-      return (enemy.xp, enemy.gold, ready)
-
-    def ready_to_level_up(self):
-      if self.level == self.level_cap:  # zero values if we've ready the level cap
-        return (False, 0)
-
-      xp_needed = (self.level) * 10
-      return (self.xp >= xp_needed, xp_needed - self.xp)  #(ready, XP needed)
-
-    def level_up(self, increase):
-      ready, _ = self.ready_to_level_up()
-      if not ready:
-        return (False, self.level)  # (not leveled up, current level)
-
-      self.level += 1  # increase level
-      setattr(self, increase,
-              getattr(self, increase) + 1)  # increase chosen stat
-
-      self.hp = self.max_hp  #refill HP
-
-      # Save to db after state change
-      self.save_to_db()
-
-      return (True, self.level)  # (leveled up, new level)
-
-    def die(self, player_id):
-      if self.user_id in db["characters"].keys():
-        del db["characters"][self.user_id]
+		def die(self, player_id):
+				if self.user_id in db["characters"].keys():
+						del db["characters"][self.user_id]
 
 
 class Enemy(Actor):
 
-  def __init__(self, name, max_hp, attack, defense, xp, gold):
-    super().__init__(name, max_hp, attack, defense, xp, gold)
+		def __init__(self, name, max_hp, attack, defense, xp, gold):
+			super().__init__(name, max_hp, attack, defense, xp, gold)
 
-    self.enemy = self.__class__.__name__
+			self.enemy = self.__class__.__name__
 
-  def rehydrate(self, name, hp, max_hp, attack, defense, xp, gold, enemy):
-    self.name = name
-    self.hp = hp
-    self.max_hp = max_hp
-    self.attack = attack
-    self.defense = defense
-    self.xp = xp
-    self.gold = gold
+		def rehydrate(self, name, hp, max_hp, attack, defense, xp, gold, enemy):
+			self.name = name
+			self.hp = hp
+			self.max_hp = max_hp
+			self.attack = attack
+			self.defense = defense
+			self.xp = xp
+			self.gold = gold
 
 
 class GiantRat(Enemy):
-  min_level = 1
-  bias = 1
-  stat = make_stats_enemy(min_level, bias)
+		min_level = 1
+		bias = 1
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Giant Rat", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
+		def __init__(self):
+				super().__init__("Giant Rat", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])  # HP, attack, defense, XP, gold
 
 
 class GiantSpider(Enemy):
-  min_level = 3
-  bias = 2
-  stat = make_stats_enemy(min_level, bias)
+		min_level = 3
+		bias = 2
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Giant Spider", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
+		def __init__(self):
+				super().__init__("Giant Spider", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])
+				# HP, attack, defense, XP, gold
 
 
 class Bat(Enemy):
-  min_level = 5
-  bias = 3
-  stat = make_stats_enemy(min_level, bias)
+		min_level = 5
+		bias = 3
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Bat", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
+		def __init__(self):
+				super().__init__("Bat", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])
 
 
 class Skeleton(Enemy):
-  min_level = 10
-  bias = 5
-  stat = make_stats_enemy(min_level, bias)
+		min_level = 10
+		bias = 5
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Skeleton", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
-
+		def __init__(self):
+				super().__init__("Skeleton", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])  # HP, attack, defense, XP, gold
 
 class Wolf(Enemy):
-  min_level = 15
-  bias = 8
-  stat = make_stats_enemy(min_level, bias)
+		min_level = 15
+		bias = 8
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Wolf", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
+		def __init__(self):
+				super().__init__("Wolf", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])
 
 
 class Ogre(Enemy):
-  min_level = 25
-  bias = 10
-  stat = make_stats_enemy(min_level, bias)
+		min_level = 25
+		bias = 10
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Ogre", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
+		def __init__(self):
+				super().__init__("Ogre", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])
 
 
-class Living_Armor(Enemy):
-  min_level = 30
-  bias = 15
-  stat = make_stats_enemy(min_level, bias)
+class LivingArmor(Enemy):
+		min_level = 30
+		bias = 15
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Living Armor", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
+		def __init__(self):
+				super().__init__("Living Armor", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])
 
 
 class Bear(Enemy):
-  min_level = 40
-  bias = 25
-  stat = make_stats_enemy(min_level, bias)
+		min_level = 40
+		bias = 25
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Bear", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
+		def __init__(self):
+				super().__init__("Bear", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])
 
 
 class Drake(Enemy):
-  min_level = 80
-  bias = 40
-  stat = make_stats_enemy(min_level, bias)
+		min_level = 80
+		bias = 40
+		stat = make_stats_enemy(min_level, bias)
 
-  def __init__(self):
-    super().__init__("Lesser Drake", self.stat[0], self.stat[1], self.stat[2],
-                     self.stat[3],
-                     self.stat[4])  # HP, attack, defense, XP, gold
+		def __init__(self):
+				super().__init__("Lesser Drake", self.stat[0], self.stat[1], self.stat[2], self.stat[3], self.stat[4])
