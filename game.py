@@ -107,6 +107,7 @@ class Character(Actor):
 			character_dict = deepcopy(vars(self))
 			if self.battling != None:
 					character_dict["battling"] = deepcopy(vars(self.battling))
+				
 			db["characters"][self.user_id] = character_dict
 
 				

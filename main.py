@@ -100,7 +100,6 @@ async def create(ctx, name=None):
 	
 		character.save_to_db()
 		print(db["characters"])
-		print(db.prefix(f"{user_id}"))
 		await ctx.message.reply(f"New level 1 character created: {name}. Enter `!status` to see your stats.")
 		
 	else:
