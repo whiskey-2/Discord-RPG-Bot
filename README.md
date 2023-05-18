@@ -1,1 +1,2 @@
 basic RPG bot for discord called ETOS for now. Will add skill functions and things of the sort to have some fun with being OP.
+Deprecated, now ToES (Name in progress, I know it's bad) bot. Private rep for now as well.
